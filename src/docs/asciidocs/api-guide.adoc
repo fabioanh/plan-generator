@@ -1,0 +1,25 @@
+= Plan Generator
+
+Fabio Navarrete <fabioanh@gmail.com>
+
+:doctype: book
+:icons: font
+:toc: left
+
+[[Plans]]
+= Plans REST Service
+
+Entry point for the Plan Generator service. Exposes the Plan resource to be able to perform the desired actions related to a Plan
+
+== Generate Plan
+
+Generate the loan schedule for a Plan.
+
+Parameters accepted for the request:
+include::{snippets}/generate-plan/request-fields.adoc[]
+
+.request
+include::{snippets}/generate-plan/http-request.adoc[]
+
+.response
+include::{snippets}/generate-plan/http-response.adoc[]
