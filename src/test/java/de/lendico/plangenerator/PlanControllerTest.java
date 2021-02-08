@@ -50,8 +50,8 @@ class PlanControllerTest {
         // having
         String expectedJson = "{\"borrowerPayments\":[" +
                 "{\"borrowerPaymentAmount\":1680.57,\"date\":\"2020-01-01\",\"initialOutstandingPrincipal\":5000.0,\"interest\":20.83,\"principal\":1659.74,\"remainingOutstandingPrincipal\":3340.26}," +
-                "{\"borrowerPaymentAmount\":1680.57,\"date\":\"2020-02-01\",\"initialOutstandingPrincipal\":3340.26,\"interest\":13.92,\"principal\":1666.65,\"remainingOutstandingPrincipal\":1659.69}," +
-                "{\"borrowerPaymentAmount\":1680.57,\"date\":\"2020-03-01\",\"initialOutstandingPrincipal\":1659.69,\"interest\":6.91,\"principal\":1673.66,\"remainingOutstandingPrincipal\":0}" +
+                "{\"borrowerPaymentAmount\":1680.57,\"date\":\"2020-02-01\",\"initialOutstandingPrincipal\":3340.26,\"interest\":13.92,\"principal\":1666.65,\"remainingOutstandingPrincipal\":1673.61}," +
+                "{\"borrowerPaymentAmount\":1680.57,\"date\":\"2020-03-01\",\"initialOutstandingPrincipal\":1673.61,\"interest\":6.97,\"principal\":1673.6,\"remainingOutstandingPrincipal\":0}" +
                 "]}";
         String postBody = new JSONObject()
                 .put("loanAmount", 5000)
