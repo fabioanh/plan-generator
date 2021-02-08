@@ -48,7 +48,11 @@ class PlanControllerTest {
     @Test
     public void generate_regularRequest_successfulResponse() throws Exception {
         // having
-        String expectedJson = "{\"borrowerPayments\":[{\"borrowerPaymentAmount\":1680.57,\"date\":\"2020-01-01\",\"initialOutstandingPrincipal\":5000,\"interest\":20.83,\"principal\":1659.74,\"remainingOutstandingPrincipal\":3340.26},{\"borrowerPaymentAmount\":1680.57,\"date\":\"2020-02-01\",\"initialOutstandingPrincipal\":3340.26,\"interest\":13.92,\"principal\":1666.65,\"remainingOutstandingPrincipal\":1659.69},{\"borrowerPaymentAmount\":1680.57,\"date\":\"2020-03-01\",\"initialOutstandingPrincipal\":1659.69,\"interest\":6.91,\"principal\":1673.66,\"remainingOutstandingPrincipal\":0}]}";
+        String expectedJson = "{\"borrowerPayments\":[" +
+                "{\"borrowerPaymentAmount\":1680.57,\"date\":\"2020-01-01\",\"initialOutstandingPrincipal\":5000.0,\"interest\":20.83,\"principal\":1659.74,\"remainingOutstandingPrincipal\":3340.26}," +
+                "{\"borrowerPaymentAmount\":1680.57,\"date\":\"2020-02-01\",\"initialOutstandingPrincipal\":3340.26,\"interest\":13.92,\"principal\":1666.65,\"remainingOutstandingPrincipal\":1659.69}," +
+                "{\"borrowerPaymentAmount\":1680.57,\"date\":\"2020-03-01\",\"initialOutstandingPrincipal\":1659.69,\"interest\":6.91,\"principal\":1673.66,\"remainingOutstandingPrincipal\":0}" +
+                "]}";
         String postBody = new JSONObject()
                 .put("loanAmount", 5000)
                 .put("nominalRate", 5.0)
@@ -58,6 +62,7 @@ class PlanControllerTest {
         // when
         ResultActions response = this.mockMvc.perform(post("/plans/generate")
                 .content(postBody)
+                .contentType("application/json")
                 .characterEncoding("utf-8"));
         // then
 
@@ -95,6 +100,7 @@ class PlanControllerTest {
         // when
         ResultActions response = this.mockMvc.perform(post("/plans/generate")
                 .content(postBody)
+                .contentType("application/json")
                 .characterEncoding("utf-8"));
         // then
 
@@ -122,6 +128,7 @@ class PlanControllerTest {
         // when
         ResultActions response = this.mockMvc.perform(post("/plans/generate")
                 .content(postBody)
+                .contentType("application/json")
                 .characterEncoding("utf-8"));
         // then
 
@@ -149,6 +156,7 @@ class PlanControllerTest {
         // when
         ResultActions response = this.mockMvc.perform(post("/plans/generate")
                 .content(postBody)
+                .contentType("application/json")
                 .characterEncoding("utf-8"));
         // then
 
@@ -176,6 +184,7 @@ class PlanControllerTest {
         // when
         ResultActions response = this.mockMvc.perform(post("/plans/generate")
                 .content(postBody)
+                .contentType("application/json")
                 .characterEncoding("utf-8"));
         // then
 
@@ -205,10 +214,11 @@ class PlanControllerTest {
         // when
         ResultActions response = this.mockMvc.perform(post("/plans/generate")
                 .content(postBody)
+                .contentType("application/json")
                 .characterEncoding("utf-8"));
         // then
 
-        response.andExpect(status().isBadRequest())
+        response.andExpect(status().is4xxClientError())
                 .andDo(print())
                 .andDo(docs);
     }
@@ -233,6 +243,7 @@ class PlanControllerTest {
         // when
         ResultActions response = this.mockMvc.perform(post("/plans/generate")
                 .content(postBody)
+                .contentType("application/json")
                 .characterEncoding("utf-8"));
         // then
 
@@ -261,6 +272,7 @@ class PlanControllerTest {
         // when
         ResultActions response = this.mockMvc.perform(post("/plans/generate")
                 .content(postBody)
+                .contentType("application/json")
                 .characterEncoding("utf-8"));
         // then
 
@@ -289,6 +301,7 @@ class PlanControllerTest {
         // when
         ResultActions response = this.mockMvc.perform(post("/plans/generate")
                 .content(postBody)
+                .contentType("application/json")
                 .characterEncoding("utf-8"));
         // then
 
