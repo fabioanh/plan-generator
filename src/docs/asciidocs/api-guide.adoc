@@ -21,5 +21,26 @@ include::{snippets}/generate-plan/request-fields.adoc[]
 .request
 include::{snippets}/generate-plan/http-request.adoc[]
 
+.curl-request
+include::{snippets}/generate-plan/curl-request.adoc[]
+
+Response fields description:
+include::{snippets}/generate-plan/response-fields.adoc[]
+
 .response
 include::{snippets}/generate-plan/http-response.adoc[]
+
+=== Sample Errors
+==== - Missing parameters in request body.
+All the parameters are required in the request body.
+
+.response
+include::{snippets}/missing-params/http-response.adoc[]
+
+==== - Invalid values provided to the service
+
+.request
+include::{snippets}/invalid-params/http-request.adoc[]
+
+.response
+include::{snippets}/invalid-params/http-response.adoc[]

@@ -5,13 +5,13 @@ import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.restdocs.RestDocumentationContextProvider;
 import org.springframework.restdocs.RestDocumentationExtension;
+import org.springframework.restdocs.constraints.ConstraintDescriptions;
 import org.springframework.restdocs.mockmvc.RestDocumentationResultHandler;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
@@ -27,8 +27,8 @@ import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.docu
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.documentationConfiguration;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.*;
 import static org.springframework.restdocs.payload.PayloadDocumentation.*;
+import static org.springframework.restdocs.snippet.Attributes.key;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -56,6 +56,7 @@ class PlanControllerTest {
     @Test
     public void generate_regularRequest_successfulResponse() throws Exception {
         // having
+        ConstraintDescriptions constraintDescriptions = new ConstraintDescriptions(PlanRequestDTO.class);
         Mockito.when(planService.generatePaymentPlan(Mockito.any(BigDecimal.class), Mockito.any(BigDecimal.class), Mockito.eq(3), Mockito.eq(LocalDate.of(2020, 1, 1))))
                 .thenReturn(
                         Arrays.asList(
@@ -83,120 +84,49 @@ class PlanControllerTest {
         // then
 
         response.andExpect(status().isOk())
-                .andDo(print())
                 .andExpect(content().json(expectedJson))
                 .andDo(document("generate-plan",
                         preprocessRequest(prettyPrint()),
                         preprocessResponse(prettyPrint()),
-                        requestFields(fieldWithPath("loanAmount").description("Total loan amount of the plan"),
-                                fieldWithPath("nominalRate").description("Nominal rate for the loan plan"),
-                                fieldWithPath("duration").description("Duration in months for the plan"),
-                                fieldWithPath("startDate").description("Start date in ISO-8601 for the loan plan")
+                        requestFields(
+                                fieldWithPath("loanAmount")
+                                        .description("Total loan amount of the plan")
+                                        .attributes(key("constraints").value(constraintDescriptions.descriptionsForProperty("loanAmount"))),
+                                fieldWithPath("nominalRate")
+                                        .description("Nominal rate for the loan plan")
+                                        .attributes(key("constraints").value(constraintDescriptions.descriptionsForProperty("nominalRate"))),
+                                fieldWithPath("duration")
+                                        .description("Duration in months for the plan")
+                                        .attributes(key("constraints").value(constraintDescriptions.descriptionsForProperty("duration"))),
+                                fieldWithPath("startDate")
+                                        .description("Start date in ISO-8601 for the loan plan")
+                                        .attributes(key("constraints").value(constraintDescriptions.descriptionsForProperty("startDate")))
+                        ),
+                        responseFields(
+                                fieldWithPath("borrowerPayments[].borrowerPaymentAmount").type("Number").description("Annuity value to pay"),
+                                fieldWithPath("borrowerPayments[].date").type("String").description("Date scheduled for the payment"),
+                                fieldWithPath("borrowerPayments[].initialOutstandingPrincipal").type("Number").description("Remaining value in the loan before this payment and without interest"),
+                                fieldWithPath("borrowerPayments[].interest").type("Number").description("Interest amount for the loan before the current payment"),
+                                fieldWithPath("borrowerPayments[].principal").type("Number").description("Payment to the loan in the current period without the interest"),
+                                fieldWithPath("borrowerPayments[].remainingOutstandingPrincipal").type("Number").description("Remaining value to pay after the current period payment")
                         )
                 ));
         ;
     }
 
     @Test
-    public void generate_missingLoanAmountParam_errorResponse() throws Exception {
+    public void generate_missingParams_errorResponse() throws Exception {
         // having
         String postBody = new JSONObject()
-                .put("nominalRate", 5.0)
-                .put("duration", 3)
-                .put("startDate", "2020-01-01")
                 .toString();
 
-        RestDocumentationResultHandler docs = document("Error Response",
+        RestDocumentationResultHandler docs = document("missing-params",
                 preprocessRequest(prettyPrint()),
                 preprocessResponse(prettyPrint()),
                 responseFields(
                         fieldWithPath("errors[].error").type("String").description("'loanAmount' is required"),
-                        fieldWithPath("errors[].status").type("Integer").description(400)
-                )
-        );
-        // when
-        ResultActions response = this.mockMvc.perform(post("/plans/generate")
-                .content(postBody)
-                .contentType("application/json")
-                .characterEncoding("utf-8"));
-        // then
-
-        response.andExpect(status().isBadRequest())
-                .andDo(print())
-                .andDo(docs);
-    }
-
-    @Test
-    public void generate_missingNominalRateParam_errorResponse() throws Exception {
-        // having
-        String postBody = new JSONObject()
-                .put("loanAmount", 5000.0)
-                .put("duration", 3)
-                .put("startDate", "2020-01-01")
-                .toString();
-
-        RestDocumentationResultHandler docs = document("Error Response",
-                preprocessRequest(prettyPrint()),
-                preprocessResponse(prettyPrint()),
-                responseFields(
                         fieldWithPath("errors[].error").type("String").description("'nominalRate' is required"),
-                        fieldWithPath("errors[].status").type("Integer").description(400)
-                )
-        );
-        // when
-        ResultActions response = this.mockMvc.perform(post("/plans/generate")
-                .content(postBody)
-                .contentType("application/json")
-                .characterEncoding("utf-8"));
-        // then
-
-        response.andExpect(status().isBadRequest())
-                .andDo(print())
-                .andDo(docs);
-    }
-
-    @Test
-    public void generate_missingDurationParam_errorResponse() throws Exception {
-        // having
-        String postBody = new JSONObject()
-                .put("loanAmount", 5000.0)
-                .put("nominalRate", 5.0)
-                .put("startDate", "2020-01-01")
-                .toString();
-
-        RestDocumentationResultHandler docs = document("Error Response",
-                preprocessRequest(prettyPrint()),
-                preprocessResponse(prettyPrint()),
-                responseFields(
                         fieldWithPath("errors[].error").type("String").description("'duration' is required"),
-                        fieldWithPath("errors[].status").type("Integer").description(400)
-                )
-        );
-        // when
-        ResultActions response = this.mockMvc.perform(post("/plans/generate")
-                .content(postBody)
-                .contentType("application/json")
-                .characterEncoding("utf-8"));
-        // then
-
-        response.andExpect(status().isBadRequest())
-                .andDo(print())
-                .andDo(docs);
-    }
-
-    @Test
-    public void generate_missingStartDateParam_errorResponse() throws Exception {
-        // having
-        String postBody = new JSONObject()
-                .put("loanAmount", 5000.0)
-                .put("nominalRate", 5.0)
-                .put("duration", 3)
-                .toString();
-
-        RestDocumentationResultHandler docs = document("Error Response",
-                preprocessRequest(prettyPrint()),
-                preprocessResponse(prettyPrint()),
-                responseFields(
                         fieldWithPath("errors[].error").type("String").description("'startDate' is required"),
                         fieldWithPath("errors[].status").type("Integer").description(400)
                 )
@@ -209,115 +139,26 @@ class PlanControllerTest {
         // then
 
         response.andExpect(status().isBadRequest())
-                .andDo(print())
                 .andDo(docs);
     }
 
     @Test
-    public void generate_negativeLoanAmount_errorResponse() throws Exception {
+    public void generate_invalidParams_errorResponse() throws Exception {
         // having
         String postBody = new JSONObject()
-                .put("loanAmount", 5000.0)
+                .put("loanAmount", -5000)
                 .put("nominalRate", -5.0)
-                .put("duration", 3)
-                .put("startDate", "2020-01-01")
+                .put("duration", -3)
+                .put("startDate", "2020-DEC-01")
                 .toString();
 
-        RestDocumentationResultHandler docs = document("Error Response",
+        RestDocumentationResultHandler docs = document("invalid-params",
                 preprocessRequest(prettyPrint()),
                 preprocessResponse(prettyPrint()),
                 responseFields(
                         fieldWithPath("errors[].error").type("String").description("'loanAmount' should be a positive number"),
-                        fieldWithPath("errors[].status").type("Integer").description(400)
-                )
-        );
-
-        // when
-        ResultActions response = this.mockMvc.perform(post("/plans/generate")
-                .content(postBody)
-                .contentType("application/json")
-                .characterEncoding("utf-8"));
-        // then
-
-        response.andExpect(status().is4xxClientError())
-                .andDo(print())
-                .andDo(docs);
-    }
-
-    @Test
-    public void generate_negativeNominalRate_errorResponse() throws Exception {
-        // having
-        String postBody = new JSONObject()
-                .put("loanAmount", 5000.0)
-                .put("nominalRate", -5.0)
-                .put("duration", 3)
-                .put("startDate", "2020-01-01")
-                .toString();
-
-        RestDocumentationResultHandler docs = document("Error Response",
-                preprocessRequest(prettyPrint()),
-                preprocessResponse(prettyPrint()),
-                responseFields(
                         fieldWithPath("errors[].error").type("String").description("'nominalRate' should be a positive number"),
-                        fieldWithPath("errors[].status").type("Integer").description(400)
-                )
-        );
-        // when
-        ResultActions response = this.mockMvc.perform(post("/plans/generate")
-                .content(postBody)
-                .contentType("application/json")
-                .characterEncoding("utf-8"));
-        // then
-
-        response.andExpect(status().isBadRequest())
-                .andDo(print())
-                .andDo(docs);
-    }
-
-    @Test
-    public void generate_negativeDuration_errorResponse() throws Exception {
-        // having
-        String postBody = new JSONObject()
-                .put("loanAmount", 5000.0)
-                .put("nominalRate", 5.0)
-                .put("duration", -3)
-                .put("startDate", "2020-01-01")
-                .toString();
-
-        RestDocumentationResultHandler docs = document("Error Response",
-                preprocessRequest(prettyPrint()),
-                preprocessResponse(prettyPrint()),
-                responseFields(
                         fieldWithPath("errors[].error").type("String").description("'duration' should be a positive number"),
-                        fieldWithPath("errors[].status").type("Integer").description(400)
-                )
-        );
-        // when
-        ResultActions response = this.mockMvc.perform(post("/plans/generate")
-                .content(postBody)
-                .contentType("application/json")
-                .characterEncoding("utf-8"));
-        // then
-
-        response.andExpect(status().isBadRequest())
-                .andDo(print())
-                .andDo(docs);
-    }
-
-    @Test
-    public void generate_invalidDate_errorResponse() throws Exception {
-        // having
-        String postBody = new JSONObject()
-                .put("loanAmount", 5000.0)
-                .put("nominalRate", 5.0)
-                .put("duration", 3)
-                .put("startDate", "2020-Nov-11")
-                .toString();
-
-        RestDocumentationResultHandler docs = document("Error Response",
-                preprocessRequest(prettyPrint()),
-                preprocessResponse(prettyPrint()),
-                responseFields(
                         fieldWithPath("errors[].error").type("String").description("'startDate' invalid value"),
                         fieldWithPath("errors[].status").type("Integer").description(400)
                 )
@@ -330,7 +171,162 @@ class PlanControllerTest {
         // then
 
         response.andExpect(status().isBadRequest())
-                .andDo(print())
                 .andDo(docs);
+    }
+
+    @Test
+    public void generate_missingLoanAmountParam_errorResponse() throws Exception {
+        // having
+        String postBody = new JSONObject()
+                .put("nominalRate", 5.0)
+                .put("duration", 3)
+                .put("startDate", "2020-01-01")
+                .toString();
+
+        // when
+        ResultActions response = this.mockMvc.perform(post("/plans/generate")
+                .content(postBody)
+                .contentType("application/json")
+                .characterEncoding("utf-8"));
+
+        // then
+        response.andExpect(status().isBadRequest());
+    }
+
+    @Test
+    public void generate_missingNominalRateParam_errorResponse() throws Exception {
+        // having
+        String postBody = new JSONObject()
+                .put("loanAmount", 5000.0)
+                .put("duration", 3)
+                .put("startDate", "2020-01-01")
+                .toString();
+
+        // when
+        ResultActions response = this.mockMvc.perform(post("/plans/generate")
+                .content(postBody)
+                .contentType("application/json")
+                .characterEncoding("utf-8"));
+
+        // then
+        response.andExpect(status().isBadRequest());
+    }
+
+    @Test
+    public void generate_missingDurationParam_errorResponse() throws Exception {
+        // having
+        String postBody = new JSONObject()
+                .put("loanAmount", 5000.0)
+                .put("nominalRate", 5.0)
+                .put("startDate", "2020-01-01")
+                .toString();
+
+        // when
+        ResultActions response = this.mockMvc.perform(post("/plans/generate")
+                .content(postBody)
+                .contentType("application/json")
+                .characterEncoding("utf-8"));
+
+        // then
+        response.andExpect(status().isBadRequest());
+    }
+
+    @Test
+    public void generate_missingStartDateParam_errorResponse() throws Exception {
+        // having
+        String postBody = new JSONObject()
+                .put("loanAmount", 5000.0)
+                .put("nominalRate", 5.0)
+                .put("duration", 3)
+                .toString();
+
+        // when
+        ResultActions response = this.mockMvc.perform(post("/plans/generate")
+                .content(postBody)
+                .contentType("application/json")
+                .characterEncoding("utf-8"));
+
+        // then
+        response.andExpect(status().isBadRequest());
+    }
+
+    @Test
+    public void generate_negativeLoanAmount_errorResponse() throws Exception {
+        // having
+        String postBody = new JSONObject()
+                .put("loanAmount", 5000.0)
+                .put("nominalRate", -5.0)
+                .put("duration", 3)
+                .put("startDate", "2020-01-01")
+                .toString();
+
+        // when
+        ResultActions response = this.mockMvc.perform(post("/plans/generate")
+                .content(postBody)
+                .contentType("application/json")
+                .characterEncoding("utf-8"));
+
+        // then
+        response.andExpect(status().is4xxClientError());
+    }
+
+    @Test
+    public void generate_negativeNominalRate_errorResponse() throws Exception {
+        // having
+        String postBody = new JSONObject()
+                .put("loanAmount", 5000.0)
+                .put("nominalRate", -5.0)
+                .put("duration", 3)
+                .put("startDate", "2020-01-01")
+                .toString();
+
+        // when
+        ResultActions response = this.mockMvc.perform(post("/plans/generate")
+                .content(postBody)
+                .contentType("application/json")
+                .characterEncoding("utf-8"));
+
+        // then
+        response.andExpect(status().isBadRequest());
+    }
+
+    @Test
+    public void generate_negativeDuration_errorResponse() throws Exception {
+        // having
+        String postBody = new JSONObject()
+                .put("loanAmount", 5000.0)
+                .put("nominalRate", 5.0)
+                .put("duration", -3)
+                .put("startDate", "2020-01-01")
+                .toString();
+
+        // when
+        ResultActions response = this.mockMvc.perform(post("/plans/generate")
+                .content(postBody)
+                .contentType("application/json")
+                .characterEncoding("utf-8"));
+
+        // then
+        response.andExpect(status().isBadRequest());
+    }
+
+    @Test
+    public void generate_invalidDate_errorResponse() throws Exception {
+        // having
+        String postBody = new JSONObject()
+                .put("loanAmount", 5000.0)
+                .put("nominalRate", 5.0)
+                .put("duration", 3)
+                .put("startDate", "2020-Nov-11")
+                .toString();
+
+        // when
+        ResultActions response = this.mockMvc.perform(post("/plans/generate")
+                .content(postBody)
+                .contentType("application/json")
+                .characterEncoding("utf-8"));
+
+        // then
+        response.andExpect(status().isBadRequest());
     }
 }
