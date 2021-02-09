@@ -5,8 +5,11 @@ import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.restdocs.RestDocumentationContextProvider;
 import org.springframework.restdocs.RestDocumentationExtension;
 import org.springframework.restdocs.mockmvc.RestDocumentationResultHandler;
@@ -16,12 +19,14 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.Arrays;
+
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.documentationConfiguration;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.*;
-import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
-import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
-import static org.springframework.restdocs.payload.PayloadDocumentation.requestFields;
+import static org.springframework.restdocs.payload.PayloadDocumentation.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -34,6 +39,9 @@ class PlanControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @MockBean
+    private PlanService planService;
 
     private ObjectMapper objectMapper = new ObjectMapper();
 
@@ -48,10 +56,18 @@ class PlanControllerTest {
     @Test
     public void generate_regularRequest_successfulResponse() throws Exception {
         // having
+        Mockito.when(planService.generatePaymentPlan(Mockito.any(BigDecimal.class), Mockito.any(BigDecimal.class), Mockito.eq(3), Mockito.eq(LocalDate.of(2020, 1, 1))))
+                .thenReturn(
+                        Arrays.asList(
+                                new BorrowerPayment(BigDecimal.valueOf(1680.57), LocalDate.of(2020, 1, 1), BigDecimal.valueOf(5000), BigDecimal.valueOf(20.83), BigDecimal.valueOf(1659.74), BigDecimal.valueOf(3340.26)),
+                                new BorrowerPayment(BigDecimal.valueOf(1680.57), LocalDate.of(2020, 2, 1), BigDecimal.valueOf(3340.26), BigDecimal.valueOf(13.92), BigDecimal.valueOf(1666.65), BigDecimal.valueOf(1673.61)),
+                                new BorrowerPayment(BigDecimal.valueOf(1680.57), LocalDate.of(2020, 3, 1), BigDecimal.valueOf(1673.6), BigDecimal.valueOf(6.97), BigDecimal.valueOf(1673.6), BigDecimal.ZERO)
+                        )
+                );
         String expectedJson = "{\"borrowerPayments\":[" +
                 "{\"borrowerPaymentAmount\":1680.57,\"date\":\"2020-01-01\",\"initialOutstandingPrincipal\":5000.0,\"interest\":20.83,\"principal\":1659.74,\"remainingOutstandingPrincipal\":3340.26}," +
                 "{\"borrowerPaymentAmount\":1680.57,\"date\":\"2020-02-01\",\"initialOutstandingPrincipal\":3340.26,\"interest\":13.92,\"principal\":1666.65,\"remainingOutstandingPrincipal\":1673.61}," +
-                "{\"borrowerPaymentAmount\":1680.57,\"date\":\"2020-03-01\",\"initialOutstandingPrincipal\":1673.61,\"interest\":6.97,\"principal\":1673.6,\"remainingOutstandingPrincipal\":0}" +
+                "{\"borrowerPaymentAmount\":1680.57,\"date\":\"2020-03-01\",\"initialOutstandingPrincipal\":1673.6,\"interest\":6.97,\"principal\":1673.6,\"remainingOutstandingPrincipal\":0}" +
                 "]}";
         String postBody = new JSONObject()
                 .put("loanAmount", 5000)
@@ -94,7 +110,8 @@ class PlanControllerTest {
                 preprocessRequest(prettyPrint()),
                 preprocessResponse(prettyPrint()),
                 responseFields(
-                        fieldWithPath("error").type("String").description("Missing required Double parameter 'loanAmount'")
+                        fieldWithPath("errors[].error").type("String").description("'loanAmount' is required"),
+                        fieldWithPath("errors[].status").type("Integer").description(400)
                 )
         );
         // when
@@ -122,7 +139,8 @@ class PlanControllerTest {
                 preprocessRequest(prettyPrint()),
                 preprocessResponse(prettyPrint()),
                 responseFields(
-                        fieldWithPath("error").type("String").description("Missing required Float parameter 'nominalRate'")
+                        fieldWithPath("errors[].error").type("String").description("'nominalRate' is required"),
+                        fieldWithPath("errors[].status").type("Integer").description(400)
                 )
         );
         // when
@@ -150,7 +168,8 @@ class PlanControllerTest {
                 preprocessRequest(prettyPrint()),
                 preprocessResponse(prettyPrint()),
                 responseFields(
-                        fieldWithPath("error").type("String").description("Missing required Integer parameter 'duration'")
+                        fieldWithPath("errors[].error").type("String").description("'duration' is required"),
+                        fieldWithPath("errors[].status").type("Integer").description(400)
                 )
         );
         // when
@@ -178,7 +197,8 @@ class PlanControllerTest {
                 preprocessRequest(prettyPrint()),
                 preprocessResponse(prettyPrint()),
                 responseFields(
-                        fieldWithPath("error").type("String").description("Missing required String parameter 'startDate'")
+                        fieldWithPath("errors[].error").type("String").description("'startDate' is required"),
+                        fieldWithPath("errors[].status").type("Integer").description(400)
                 )
         );
         // when
@@ -207,7 +227,8 @@ class PlanControllerTest {
                 preprocessRequest(prettyPrint()),
                 preprocessResponse(prettyPrint()),
                 responseFields(
-                        fieldWithPath("error").type("String").description("'loanAmount' must be greater than 0.0")
+                        fieldWithPath("errors[].error").type("String").description("'loanAmount' should be a positive number"),
+                        fieldWithPath("errors[].status").type("Integer").description(400)
                 )
         );
 
@@ -237,7 +258,8 @@ class PlanControllerTest {
                 preprocessRequest(prettyPrint()),
                 preprocessResponse(prettyPrint()),
                 responseFields(
-                        fieldWithPath("error").type("String").description("'nominalRate' must be greater than 0.0")
+                        fieldWithPath("errors[].error").type("String").description("'nominalRate' should be a positive number"),
+                        fieldWithPath("errors[].status").type("Integer").description(400)
                 )
         );
         // when
@@ -266,7 +288,8 @@ class PlanControllerTest {
                 preprocessRequest(prettyPrint()),
                 preprocessResponse(prettyPrint()),
                 responseFields(
-                        fieldWithPath("error").type("String").description("'duration' must be greater than 0")
+                        fieldWithPath("errors[].error").type("String").description("'duration' should be a positive number"),
+                        fieldWithPath("errors[].status").type("Integer").description(400)
                 )
         );
         // when
@@ -287,15 +310,16 @@ class PlanControllerTest {
         String postBody = new JSONObject()
                 .put("loanAmount", 5000.0)
                 .put("nominalRate", 5.0)
-                .put("duration", -3)
-                .put("startDate", "2020-14-40")
+                .put("duration", 3)
+                .put("startDate", "2020-Nov-11")
                 .toString();
 
         RestDocumentationResultHandler docs = document("Error Response",
                 preprocessRequest(prettyPrint()),
                 preprocessResponse(prettyPrint()),
                 responseFields(
-                        fieldWithPath("error").type("String").description("Invalid 'startDate' provided")
+                        fieldWithPath("errors[].error").type("String").description("'startDate' invalid value"),
+                        fieldWithPath("errors[].status").type("Integer").description(400)
                 )
         );
         // when
